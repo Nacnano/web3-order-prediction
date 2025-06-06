@@ -1,5 +1,6 @@
 import time
 import json
+import copy
 from pybit.unified_trading import WebSocket
 
 # ==============================================================================
@@ -17,7 +18,7 @@ DEPTH = 50
 # -- Data Collection Settings --
 DURATION_SECONDS = 3600
 # The name of the output file where the data will be saved.
-OUTPUT_FILENAME = f"bybit_{SYMBOL.lower()}_{CHANNEL_TYPE}_orderbook_{DEPTH}_1hr.json"
+OUTPUT_FILENAME = f"bybit_{SYMBOL.lower()}_{CHANNEL_TYPE}_orderbook_{DEPTH}_{DURATION_SECONDS}sec.json"
 
 # ==============================================================================
 # --- Global variables ---
@@ -37,15 +38,8 @@ def handle_orderbook_message(message: dict):
     and prints a status update to the console every 1000 messages.
     """
     global collected_messages, first_message_printed
-    collected_messages.append(message)
-
-    # Print the very first message received as a sample
-    if not first_message_printed:
-        print(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S')}] First WebSocket message received (sample):")
-        print(json.dumps(message, indent=2))
-        print("-" * 50) # Separator
-        first_message_printed = True
-
+    collected_messages.append(copy.deepcopy(message))  # Store a copy of the message
+    
     # To avoid flooding the console, print a status update every 1000 messages collected after the first.
     if len(collected_messages) % 1000 == 0:
         print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Messages collected: {len(collected_messages):,}")
@@ -106,19 +100,6 @@ if __name__ == "__main__":
     if collected_messages:
         print(f"\n--- Data Collection Summary ---")
         print(f"Collected a total of {len(collected_messages):,} messages.")
-        
-        # The first message was already printed during collection if received.
-        # We can still print the first and last from the collected_messages list for final summary.
-        if not first_message_printed and collected_messages: # If somehow it was missed (e.g. very short run)
-            print("\nFirst message from collected list (if not printed during stream):")
-            print(json.dumps(collected_messages[0], indent=2))
-
-        if len(collected_messages) > 1:
-            print("\nLast message collected (from list):")
-            print(json.dumps(collected_messages[-1], indent=2))
-        elif collected_messages and first_message_printed: # If only one message was collected and already printed
-             print("\nOnly one message was collected (already printed as first sample).")
-
 
         print(f"\n[{time.strftime('%Y-%m-%d %H:%M:%S')}] Saving data to '{OUTPUT_FILENAME}'...")
         try:
